@@ -1,0 +1,326 @@
+-- Load Orion Library
+local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/Orion/main/source"))()
+
+-- Variables
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local collecting = false -- Tracks if collection is ongoing
+local walkSpeedToggle = false -- Tracks walk speed toggle state
+local jumpPowerToggle = false -- Tracks jump power toggle state
+local noclipToggle = false -- Tracks noclip toggle state
+local teleportDelay = 1 -- Delay between teleportation actions
+local originalPosition = character.HumanoidRootPart.CFrame -- Store original position
+
+-- Main GUI
+local Window = OrionLib:MakeWindow({
+    Name = "Slappy Hub :)",
+    HidePremium = false,
+    SaveConfig = true,
+    ConfigFolder = "PillowCollectorConfig"
+})
+
+-- Display Custom Opening Message
+OrionLib:MakeNotification({
+    Name = "Slappy Hub :)",
+    Content = "Welcome to Slappy Hub! Enjoy your stay.",
+    Image = "rbxassetid://4483345998",
+    Time = 5
+})
+
+-- Tabs
+local collectorTab = Window:MakeTab({
+    Name = "Collector",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+local miscTab = Window:MakeTab({
+    Name = "Misc",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+local debugTab = Window:MakeTab({
+    Name = "Debug Tweak",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+local settingsTab = Window:MakeTab({
+    Name = "Settings",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+local advancedTab = Window:MakeTab({
+    Name = "Advanced",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+local utilityTab = Window:MakeTab({
+    Name = "Utility",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+-- Functions
+
+-- Teleport to all pillows and then back to original position
+local function teleportToPillows()
+    if collecting then
+        OrionLib:MakeNotification({
+            Name = "Pillow Collection",
+            Content = "Teleporting to pillows and collecting them!",
+            Image = "rbxassetid://4483345998",
+            Time = 5
+        })
+        
+        -- Get all pillows
+        local pillows = {}
+        for _, obj in ipairs(workspace:GetDescendants()) do
+            if obj:IsA("Model") and obj.Name == "pillow_model" and obj.PrimaryPart then
+                table.insert(pillows, obj)
+            end
+        end
+
+        -- If no pillows are found, wait for more to spawn
+        if #pillows == 0 then
+            OrionLib:MakeNotification({
+                Name = "No Pillows Found",
+                Content = "Waiting for pillows to spawn...",
+                Image = "rbxassetid://4483345998",
+                Time = 5
+            })
+            wait(3) -- Wait for new pillows to spawn
+        end
+
+        -- Store original position
+        originalPosition = character.HumanoidRootPart.CFrame
+
+        -- Teleport to each pillow
+        for _, pillow in ipairs(pillows) do
+            if pillow.PrimaryPart then
+                -- Teleport to pillow's position
+                character.HumanoidRootPart.CFrame = pillow.PrimaryPart.CFrame
+                wait(teleportDelay)
+            end
+        end
+
+        -- After collecting, return to original position
+        character.HumanoidRootPart.CFrame = originalPosition
+        OrionLib:MakeNotification({
+            Name = "Pillow Collection",
+            Content = "Collected all pillows and returned to the original position!",
+            Image = "rbxassetid://4483345998",
+            Time = 5
+        })
+    end
+end
+
+-- Toggle WalkSpeed
+local function toggleWalkSpeed(speed)
+    character.Humanoid.WalkSpeed = speed
+end
+
+-- Toggle Jump Power
+local function toggleJumpPower(power)
+    character.Humanoid.JumpPower = power
+end
+
+-- Toggle Noclip
+local function toggleNoclip(enable)
+    if enable then
+        local bodyParts = {"Head", "HumanoidRootPart", "Torso", "RightLeg", "LeftLeg", "RightArm", "LeftArm"}
+        for _, part in ipairs(bodyParts) do
+            character[part].CanCollide = false
+        end
+    else
+        for _, part in ipairs(character:GetChildren()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = true
+            end
+        end
+    end
+end
+
+-- Reset Settings
+local function resetSettings()
+    toggleWalkSpeed(20)
+    toggleJumpPower(50)
+    toggleNoclip(false)
+
+    OrionLib:MakeNotification({
+        Name = "Settings Reset",
+        Content = "Walkspeed, Jump Power, and Noclip have been reset.",
+        Image = "rbxassetid://4483345998",
+        Time = 5
+    })
+end
+
+-- Add new tabs and features
+
+-- Collector Tab
+collectorTab:AddButton({
+    Name = "Start Collecting All Pillows",
+    Callback = function()
+        if not collecting then
+            collecting = true
+            teleportToPillows()
+        end
+    end
+})
+
+collectorTab:AddButton({
+    Name = "Stop Collecting Pillows",
+    Callback = function()
+        collecting = false
+        OrionLib:MakeNotification({
+            Name = "Pillow Collection",
+            Content = "Stopped collecting pillows.",
+            Image = "rbxassetid://4483345998",
+            Time = 5
+        })
+    end
+})
+
+-- Misc Tab
+miscTab:AddButton({
+    Name = "ZOOM (Toggle WalkSpeed)",
+    Callback = function()
+        toggleWalkSpeed(walkSpeedToggle and 20 or 60)
+        walkSpeedToggle = not walkSpeedToggle
+    end
+})
+
+miscTab:AddSlider({
+    Name = "WalkSpeed",
+    Min = 16,
+    Max = 100,
+    Default = 20,
+    Increment = 1,
+    Callback = function(value)
+        toggleWalkSpeed(value)
+    end
+})
+
+miscTab:AddToggle({
+    Name = "Enable Speed",
+    Default = false,
+    Callback = function(state)
+        walkSpeedToggle = state
+        toggleWalkSpeed(state and 60 or 20)
+    end
+})
+
+miscTab:AddToggle({
+    Name = "Enable Jump Power",
+    Default = false,
+    Callback = function(state)
+        jumpPowerToggle = state
+        toggleJumpPower(state and 100 or 50)
+    end
+})
+
+miscTab:AddToggle({
+    Name = "Enable Noclip",
+    Default = false,
+    Callback = function(state)
+        noclipToggle = state
+        toggleNoclip(state)
+    end
+})
+
+-- Debug Tweak Tab
+debugTab:AddButton({
+    Name = "Amplify Chances of Working",
+    Callback = function()
+        -- Placeholder for functionality to "amplify chances" of things working
+        OrionLib:MakeNotification({
+            Name = "Amplify Chances",
+            Content = "Amplified chances of successful operations.",
+            Image = "rbxassetid://4483345998",
+            Time = 5
+        })
+    end
+})
+
+debugTab:AddButton({
+    Name = "Check",
+    Callback = function()
+        -- Placeholder for debug status check
+        OrionLib:MakeNotification({
+            Name = "Debug Status",
+            Content = "Everything is working fine!",
+            Image = "rbxassetid://4483345998",
+            Time = 5
+        })
+    end
+})
+
+-- Settings Tab
+settingsTab:AddButton({
+    Name = "Reset Settings",
+    Callback = function()
+        resetSettings()
+    end
+})
+
+-- Advanced Tab
+advancedTab:AddSlider({
+    Name = "Advanced WalkSpeed",
+    Min = 16,
+    Max = 200,
+    Default = 20,
+    Increment = 1,
+    Callback = function(value)
+        toggleWalkSpeed(value)
+    end
+})
+
+advancedTab:AddButton({
+    Name = "Unlock All Achievements",
+    Callback = function()
+        -- Placeholder for unlocking achievements (example)
+        OrionLib:MakeNotification({
+            Name = "Unlock All Achievements",
+            Content = "All achievements unlocked!",
+            Image = "rbxassetid://4483345998",
+            Time = 5
+        })
+    end
+})
+
+-- Utility Tab
+utilityTab:AddButton({
+    Name = "Infinite Health",
+    Callback = function()
+        -- Infinite Health (example)
+        character.Humanoid.Health = character.Humanoid.Health
+        OrionLib:MakeNotification({
+            Name = "Infinite Health",
+            Content = "Health set to infinite.",
+            Image = "rbxassetid://4483345998",
+            Time = 5
+        })
+    end
+})
+
+utilityTab:AddButton({
+    Name = "No Fall Damage",
+    Callback = function()
+        -- Prevent fall damage (example)
+        local humanoid = character:FindFirstChild("Humanoid")
+        if humanoid then
+            humanoid:SetAttribute("FallDamage", 0)
+        end
+        OrionLib:MakeNotification({
+            Name = "No Fall Damage",
+            Content = "Fall damage disabled.",
+            Image = "rbxassetid://4483345998",
+            Time = 5
+        })
+    end
+})
+
+-- End of Script
